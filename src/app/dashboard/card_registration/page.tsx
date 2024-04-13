@@ -1,11 +1,10 @@
 "use client"
 import * as React from "react"
 import { format } from "date-fns"
-import { Calendar as CalendarIcon } from "lucide-react"
-import 'filepond/dist/filepond.min.css'
-import 'filepond-plugin-image-preview/dist/filepond-plugin-image-preview.css'
+import { Calendar as CalendarIcon, Loader } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { useContext } from "react";
 import { Calendar } from "@/components/ui/calendar"
 import {
     Popover,
@@ -28,6 +27,8 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/components/ui/use-toast"
 import { ToastAction } from "@/components/ui/toast"
+import { StateContext } from "@/components/Provider"
+
 
 const formSchema = z.object({
     Idnum: z.string(),
@@ -55,12 +56,15 @@ const formSchema = z.object({
 })
 
 export default function ProfileForm() {
+    const [isLoading, setIsLoading] = React.useState<boolean>(false);
     const [birthDate, setBirthDate] = React.useState<Date>()
     const [madeDate, setMadeDate] = React.useState<Date>()
     const [expireDate, setExpireDate] = React.useState<Date>()
     const { toast } = useToast()
+    const { contract, provider, signer } = useContext(StateContext)
+    const [Hash, setHash] = React.useState<String>("");
 
-    // 1. Define your form.
+
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
@@ -75,9 +79,16 @@ export default function ProfileForm() {
 
     })
 
+    async function setDocument(docHash: string, imgHash: string) {
+        const registerDocTx = await contract?.registerDocument(docHash, imgHash)
+        return registerDocTx
+    }
+
     async function onSubmit(values: z.infer<typeof formSchema>) {
+        setIsLoading(true);
         const updatedValues = {
             ...values, birthDate: birthDate, madeDate: madeDate, expireDate: expireDate
+
         }
         console.log(updatedValues);
         const request = await fetch('/files', {
@@ -86,11 +97,29 @@ export default function ProfileForm() {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify(updatedValues),
-        }).then(response => {
+        }).then(async response => {
             if (response.ok) {
+                const data = await response.json();
+                console.log(data)
+                await setDocument(data?.image, data?.document).then(async (tx) => {
+                    console.log(tx.hash)
+                    setHash(tx.Hash)
+                    if (tx.hash) {
+                        const request = await fetch('/saveCard', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify(data),
+                        })
+                    }
+                })
                 toast({
                     description: "Your card has been saved.",
                 })
+                setIsLoading(false)
+
+            
             }
             else {
                 toast({
@@ -99,17 +128,19 @@ export default function ProfileForm() {
                     description: "There was a problem with your request.",
                     action: <ToastAction altText="Try again">Try again</ToastAction>,
                 })
+                setIsLoading(false)
 
             }
         })
-        
-        console.log(request);
+
+        console.log(request)
         setBirthDate(undefined);
         setMadeDate(undefined);
         setExpireDate(undefined);
         form.setValue("gender", "Select a gender");
         form.reset();
     }
+
 
     return (
         <main className=" w-[55rem] h-[28rem] flex justify-center items-center flex-col">
@@ -199,7 +230,7 @@ export default function ProfileForm() {
                             render={({ field }) => (
                                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                                     <SelectTrigger className="w-[800px] mb-2">
-                                        <SelectValue placeholder="Select a gender " />
+                                        <SelectValue placeholder="Select a gender" />
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectGroup>
@@ -285,11 +316,13 @@ export default function ProfileForm() {
                             </FormItem>
                         )}
                     />
+                   
+
                     <div className="w-full flex justify-end">
-                        <Button className="w-44 " onClick={() => {
-
-                        }} type="submit">Submit</Button>
-
+                        <Button className="w-44 " onClick={() => { }} type="submit">
+                            {isLoading ? <Loader className="animate-spin" /> :
+                                "Submit"}
+                        </Button>
                     </div>
 
                 </form>

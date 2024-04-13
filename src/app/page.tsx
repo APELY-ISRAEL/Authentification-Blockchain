@@ -23,9 +23,7 @@ const inter = Inter({ subsets: ['latin'] })
     return (
       <html lang="en">
         <body className={inter.className}>
-        <Provider {...Navbar}>
-        
-        </Provider>
+       <Navbar/>
           <Banniere/>
           <Footer/>
         </body>

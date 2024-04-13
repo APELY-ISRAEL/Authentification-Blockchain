@@ -1,0 +1,17 @@
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Contract {
+  id      Int      @id @default(autoincrement())
+  imageHash    String
+  documentHash String
+}
+
+

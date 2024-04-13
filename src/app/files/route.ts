@@ -33,7 +33,11 @@ export async function POST(request: Request) {
       image: result.IpfsHash
     };
     const jsonpin= pinata.pinJSONToIPFS(updatedRequestValue)
-    return NextResponse.json(updatedRequestValue);
+    const data = {
+      image: result.IpfsHash,
+      document: (await jsonpin).IpfsHash
+    }
+    return NextResponse.json(data);
   } catch (error) {
     return NextResponse.error();
   }

@@ -12,7 +12,7 @@ const links = [
     name: 'ID Card Registration',
     href: '/dashboard/card_registration'
   },
-  { name: 'ID Card Checker', href: '/dashboard/verifier_registration' },
+  { name: 'Issuer managment', href: '/dashboard/verifier_registration' },
   { name: ' Card Checker List', href: '/dashboard/list_verifier' },
 ];
 
